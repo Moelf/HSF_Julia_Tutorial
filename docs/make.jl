@@ -13,7 +13,7 @@ md_files = markdown_files()
 T = [t => f for (t, f) in zip(notebooks, md_files)]
 
 makedocs(;
-    modules=[],
+    modules=Module[],
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true",
     ),
