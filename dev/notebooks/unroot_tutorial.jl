@@ -172,7 +172,7 @@ sum(single_muon_mask)
 # ╔═╡ 9fb1fc42-90cf-4fca-8da5-8224895f0a74
 md"""### Applying a mask to an array
 
-!!! note
+!!! info
 	Just because you can doesn't mean you should, I can't think of a good reason
 	to do this kind of mask and allocation other than pedagogy.
 """
@@ -293,7 +293,7 @@ end
 
 # ╔═╡ 9b663bb1-67c9-4b29-ad2d-aca2331cd4dd
 md"""
-!!! tips "Columnar vs. row-based analysis"
+!!! tip "Columnar vs. row-based analysis"
 	We want to emphasize again the fact that Julia doesn't slow down when doing row-based analysis, and we find the flexibility and scalability appealing.
 
 	We cite some timing from uproot python tutorial for comparison:
