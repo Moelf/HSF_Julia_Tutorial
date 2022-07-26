@@ -33,13 +33,13 @@ using BenchmarkTools
 using LorentzVectorHEP
 
 # ╔═╡ a6ff29b2-e501-4bca-9f5a-3388a8d7a262
-md"# Opening a file"
+md"## Opening Files"
 
 # ╔═╡ 6ef1771e-4ae3-411f-987e-3f8d64b28be4
 file = ROOTFile(joinpath(pkg_dir, "unroot-tutorial-file.root"))
 
 # ╔═╡ 4578e85b-98a2-4b09-a0e2-b8d3b12540ad
-md"# File contents"
+md"### File contents"
 
 # ╔═╡ 2b5797e9-0eaa-4c69-b653-503377cd6551
 keys(file)
@@ -48,7 +48,7 @@ keys(file)
 typeof(LazyTree(file, "Events"))
 
 # ╔═╡ 10dc43a3-1037-42d9-8626-8a1047f48944
-md"# Accessing contents"
+md"### Accessing contents"
 
 # ╔═╡ a175696a-2933-41e1-96b2-5cdf397618f2
 tree = LazyTree(file, "Events");
@@ -58,7 +58,8 @@ tree = LazyTree(file, "Events");
 propertynames(tree)
 
 # ╔═╡ 845d95dc-9b83-45e7-a125-5438796b7868
-md"# Branches"
+md"## Trees, Branches, and Events
+"
 
 # ╔═╡ d870dfe9-c90e-4970-bac5-f9f82400b5b4
 tree.nMuon
@@ -68,7 +69,7 @@ tree.nMuon
 tree[:, :Muon_pt]
 
 # ╔═╡ e77aa46e-388b-4e8f-a3ab-b51dc675d9bc
-md"# Events"
+md"### Events"
 
 # ╔═╡ 1422ae67-87d5-4477-a443-a0f3277d1452
 tree.Muon_pt[begin] #or [1]
@@ -85,7 +86,7 @@ tree[1]
 Tuple(first(tree))
 
 # ╔═╡ c9f5e90d-1112-48d2-9c4d-69cee420f067
-md"# Histogramming basics"
+md"## Histograms"
 
 # ╔═╡ fc6dca05-2cae-4be4-b1a3-97868d67e36f
 plot(Hist1D(tree.nMuon), figure=(resolution = (400, 300),))
@@ -97,7 +98,7 @@ stairs(Hist1D(tree.nMuon, 0:10);
 )
 
 # ╔═╡ 8824c90d-c38b-44a4-bb2e-4aa499d69af1
-md"# Histogramming a jagged array"
+md"### Histogramming a jagged array"
 
 # ╔═╡ 79ee8f58-0db1-4442-aed7-afca9716e443
 begin
@@ -109,7 +110,7 @@ begin
 end
 
 # ╔═╡ cdb2fe64-a7af-4b3d-b5a0-5239849e5868
-md"# Logarithmic scales"
+md"### Logarithmic scales"
 
 # ╔═╡ 63845f49-9732-4035-ab2b-c06adbf85b55
 plot(h;
@@ -135,14 +136,17 @@ begin
 	)
 end
 
+# ╔═╡ 93e47f55-4726-46db-b14d-543912ca276f
+md"## Columnar? Row-based? both!"
+
 # ╔═╡ 7db0f6f1-ee13-4e96-8ccd-cb4e986a278f
-md"# Counting"
+md"### Counting"
 
 # ╔═╡ 4a6006ed-1787-4548-9416-e5ce090fa72d
 length(tree), length(tree.nMuon), length(tree.Muon_pt)
 
 # ╔═╡ d9e952c5-d077-4c7d-a902-7882ce3c9759
-md"""# Selections
+md"""### Selections
 
 !!! warning "Vectorized style can be traps"
 	Vectorized style is a somewhat emphasized point in Python programming especially if one wants performance. However, `numpy.sum()` is nothing more than a loop written in C.
@@ -153,7 +157,7 @@ md"""# Selections
 """
 
 # ╔═╡ 9bb52754-2be2-4c22-a1fa-d85b34117eb5
-md"## Selections from 1D arrays"
+md"### Selections from 1D arrays"
 
 # ╔═╡ b076613c-3598-4b67-a228-e30497525acb
 # allocate a big intermedate array, not very Julia
@@ -166,8 +170,7 @@ md"### Counting with selections (uproot way)"
 sum(single_muon_mask)
 
 # ╔═╡ 9fb1fc42-90cf-4fca-8da5-8224895f0a74
-md"""
-### Applying a mask to an array
+md"""### Applying a mask to an array
 
 !!! note
 	Just because you can doesn't mean you should, I can't think of a good reason
@@ -205,7 +208,7 @@ begin
 end
 
 # ╔═╡ 92fc0757-19b0-4ec5-bad6-a0eab905203c
-md"### Selections from a jagged array"
+md"## Selections from a jagged array the Julia way"
 
 # ╔═╡ 6fbc0e9e-62cd-41d4-8d92-c1d4efc849c1
 mapreduce(+, tree.Muon_eta) do etas
@@ -246,7 +249,7 @@ with_theme(ATLASTHEME) do
 end
 
 # ╔═╡ 3aa7b6a5-1239-4591-85d6-4b5af5b62f02
-md"# Comparing histograms"
+md"## Comparing histograms"
 
 # ╔═╡ d138ae76-9d55-4adb-a551-db649ab19c09
 begin
@@ -315,7 +318,7 @@ With Julia, we can easily find situation where row-based is **faster** than colu
 end
 
 # ╔═╡ cbab9f62-672c-439e-bdad-ffb0aa1399f0
-md"# Getting Physics-Relevant Information"
+md"## Getting Physics-Relevant Information"
 
 # ╔═╡ 404cf7b3-41cb-4bcd-b7a4-b35e9cd414a6
 begin 
@@ -336,7 +339,7 @@ begin
 end
 
 # ╔═╡ 90f38d7f-23cf-4c1e-986f-90b7c78d6de4
-md"## Opposite sign muons"
+md"### Opposite sign muons"
 
 # ╔═╡ 05123d1c-eb9f-46ee-b620-21d3ca9733d6
 with_theme(ATLASTHEME) do
@@ -355,12 +358,12 @@ with_theme(ATLASTHEME) do
 	end
 	stairs(hist_inv; 
 		figure = (; resolution = (600, 400)),
-		axis = (xlabel = "ΔR between muons",
+		axis = (xlabel = "Dimuon invariant mass [GeV]",
 		xscale = Makie.pseudolog10,
 		xticks = [0.1, 1, 10, 100, 1000],
 		yscale = Makie.pseudolog10,
 		yticks = [1, 10, 100, 1000],
-		ylabel = "Number of two-muon events")
+		ylabel = "Number of dimuon events")
 	)
 	# text annotation
 	ps = Dict("Z"=>91.2, "J/Ψ"=>3.09, "Υ"=>9.4, "Ψ(2S)"=>3.686, "ϕ"=>1.019, "ρ"=>0.775, "η"=>0.52)
@@ -398,8 +401,9 @@ end
 # ╠═19b6dac0-ceb5-48cf-9f4b-beda5149e51d
 # ╠═79ee8f58-0db1-4442-aed7-afca9716e443
 # ╟─cdb2fe64-a7af-4b3d-b5a0-5239849e5868
-# ╠═63845f49-9732-4035-ab2b-c06adbf85b55
+# ╟─63845f49-9732-4035-ab2b-c06adbf85b55
 # ╠═7bfcefe6-35cc-43df-abe1-9afa34a9b41b
+# ╟─93e47f55-4726-46db-b14d-543912ca276f
 # ╟─7db0f6f1-ee13-4e96-8ccd-cb4e986a278f
 # ╠═4a6006ed-1787-4548-9416-e5ce090fa72d
 # ╟─d9e952c5-d077-4c7d-a902-7882ce3c9759
