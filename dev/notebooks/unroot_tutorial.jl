@@ -21,7 +21,16 @@ using UnROOT
 using FHist, CairoMakie
 
 # ╔═╡ 19b6dac0-ceb5-48cf-9f4b-beda5149e51d
-using LaTeXStrings
+begin
+	using LaTeXStrings
+	using Base.Iterators: flatten #stdlib, save some typing
+end
+
+# ╔═╡ 22c83079-6155-4991-8ec8-007d67d9142d
+using BenchmarkTools
+
+# ╔═╡ 66b10dce-552a-4129-8cc3-1ce4c543e8b5
+using LorentzVectorHEP
 
 # ╔═╡ a6ff29b2-e501-4bca-9f5a-3388a8d7a262
 md"# Opening a file"
@@ -92,7 +101,7 @@ md"# Histogramming a jagged array"
 
 # ╔═╡ 79ee8f58-0db1-4442-aed7-afca9716e443
 begin
-	h = Hist1D(collect(Iterators.flatten(tree.Muon_pt)), 0:100)
+	h = Hist1D(flatten(tree.Muon_pt), 0:100)
 	plot(h;
 		figure=(resolution = (400, 300), ),
 		axis=(xlabel=L"\mathrm{Muon}~p_{\mathrm{T}}~\mathrm{[GeV]}", ylabel="# of muons / 1 GeV")
@@ -114,7 +123,7 @@ plot(h;
 # ╔═╡ 7bfcefe6-35cc-43df-abe1-9afa34a9b41b
 begin
 	log_xs = 10 .^ range(log10(1), log10(100); length=100)
-	h_logscape = Hist1D(collect(Iterators.flatten(tree.Muon_pt)), log_xs)
+	h_logscape = Hist1D(flatten(tree.Muon_pt), log_xs)
 	
 	stairs(h_logscape;
 			figure=(resolution = (400, 300), ),
@@ -123,61 +132,76 @@ begin
 			xscale=Makie.pseudolog10,
 			xticks=[1,10,100]
 			)
-		)
+	)
 end
 
 # ╔═╡ 7db0f6f1-ee13-4e96-8ccd-cb4e986a278f
-md"# Coundintg"
+md"# Counting"
 
 # ╔═╡ 4a6006ed-1787-4548-9416-e5ce090fa72d
 length(tree), length(tree.nMuon), length(tree.Muon_pt)
 
 # ╔═╡ d9e952c5-d077-4c7d-a902-7882ce3c9759
-md"# Selections"
+md"""# Selections
+
+!!! warning "Vectorized style can be traps"
+	Vectorized style is a somewhat emphasized point in Python programming especially if one wants performance. However, `numpy.sum()` is nothing more than a loop written in C.
+
+	Since Julia is not slow, from now on, we deviate from uproot tutorial in that we are allowed to use for-loop whenever appropriate which has several benefits:
+	- More expressive
+	- Less memory allocation
+"""
 
 # ╔═╡ 9bb52754-2be2-4c22-a1fa-d85b34117eb5
 md"## Selections from 1D arrays"
 
 # ╔═╡ b076613c-3598-4b67-a228-e30497525acb
-# allocate a big intermedate array, very pythonic
+# allocate a big intermedate array, not very Julia
 single_muon_mask = tree.nMuon .== 1
 
 # ╔═╡ eb995f0c-d3ab-4e88-9ca4-3df3068ded8e
-md"### Counting with selections"
+md"### Counting with selections (uproot way)"
 
 # ╔═╡ 5ffa29c0-a219-43be-a9f0-70a09b95591c
 sum(single_muon_mask)
 
-# ╔═╡ 7c19940c-5369-436c-a265-53bdd2e0d97c
-# in Julia, much better to just
-# minimal mem allocation -> faster
-sum(==(1), tree.nMuon)
-
 # ╔═╡ 9fb1fc42-90cf-4fca-8da5-8224895f0a74
-md"### Applying a mask to an array"
+md"""
+### Applying a mask to an array
+
+!!! note
+	Just because you can doesn't mean you should, I can't think of a good reason
+	to do this kind of mask and allocation other than pedagogy.
+"""
 
 # ╔═╡ f29b616a-4292-4cb3-8e3c-3fd3e0710cc9
 tree.Muon_pt[single_muon_mask]
 
 # notice, @view should also work
-# @view tree.Muon_pt[single_muon_mask]
 
 # ╔═╡ 511a83e7-c6d2-49c5-bd4b-ea110f8cd165
 length(tree.Muon_pt[single_muon_mask])
+
+# ╔═╡ 77a8f701-5ea5-4a65-b4e1-4e39c915560c
+md"### Counting with selections (Julia way)"
+
+# ╔═╡ 7c19940c-5369-436c-a265-53bdd2e0d97c
+# minimal mem allocation -> faster
+sum(==(1), tree.nMuon)
 
 # ╔═╡ e93fe9ed-a658-43b8-a601-afa39ebe6948
 md"### Plotting with selections"
 
 # ╔═╡ 14278424-e992-4118-80f7-486efdfdc608
 begin
-	h_selection = Hist1D(collect(Iterators.flatten(tree.Muon_pt[single_muon_mask])), 0:100)
+	h_selection = Hist1D(flatten(tree.Muon_pt[single_muon_mask]), 0:100)
 	plot(h_selection;
 			figure=(resolution = (400, 300), ),
 			axis=(xlabel=L"\mathrm{Muon}~p_{\mathrm{T}}~\mathrm{[GeV]}", 
 			ylabel="# of muons / 1 GeV",
 			yscale=Makie.pseudolog10, yticks = 10 .^ (1:4)
 			)
-		)
+	)
 end
 
 # ╔═╡ 92fc0757-19b0-4ec5-bad6-a0eab905203c
@@ -185,7 +209,166 @@ md"### Selections from a jagged array"
 
 # ╔═╡ 6fbc0e9e-62cd-41d4-8d92-c1d4efc849c1
 mapreduce(+, tree.Muon_eta) do etas
-	count(eta -> abs(eta)<2, etas)
+	count(x -> -2 < x < 2, etas)
+end
+
+# ╔═╡ 1c238044-1a65-4f89-955d-ffc439eca23e
+with_theme(ATLASTHEME) do 
+	bins = range(-2.5, 2.5; length=51)
+	# Set up
+	fig = Figure(; resolution = (500, 700))
+	h_eta = Hist1D(; bins) # shot-hand for `Hist1D(; bins=bins)`
+	h_eta_sel = Hist1D(; bins)
+
+	for η in flatten(tree.Muon_eta)
+		push!(h_eta, η) # always fill upper histogran
+		abs(η) >= 2 && continue
+		push!(h_eta_sel, η) # fill lower histogram
+	end
+
+	# Plot upper axis
+	plot(fig[1,1], h_eta;
+			axis=(
+				title="No selection", 
+				xlabel=L"\mathrm{Muon}~\eta",
+				ylabel="# of muons",
+			)
+		)
+	# Plot lower axis
+	plot(fig[2,1], h_eta_sel;
+			axis=(
+				title="With |η| < 2 selection", 
+				xlabel=L"\mathrm{Muon}~\eta",
+				ylabel="# of muons",
+			)
+		)
+	fig
+end
+
+# ╔═╡ 3aa7b6a5-1239-4591-85d6-4b5af5b62f02
+md"# Comparing histograms"
+
+# ╔═╡ d138ae76-9d55-4adb-a551-db649ab19c09
+begin
+		h_pt1 = Hist1D(; bins = 0:2:50)
+		h_pt2 = Hist1D(; bins = 0:2:50)
+		for evt in tree
+			(; nMuon, Muon_pt, Muon_eta) = evt
+			nMuon != 1 && continue # single_muon_mask
+			eta_mask = @. abs(Muon_eta) < 2
+			push!.(h_pt1, Muon_pt[eta_mask])
+			push!.(h_pt2, Muon_pt[(~).(eta_mask)])
+		end
+		
+end
+
+# ╔═╡ 6ac418c3-3a0e-4973-b762-51b9c76db0b6
+with_theme(ATLASTHEME) do
+	stairs(
+		h_pt1; label = L"|\eta|~<~2",
+		figure = (; resolution = (500, 400)),
+		axis = (ylabel = "Number of single muons / 2 GeV",)
+	)
+	stairs!(h_pt2; label = L"|\eta|~\geq~2")
+
+	axislegend()
+	current_figure()
+end
+
+# ╔═╡ 8d563e0f-b45f-4d61-b380-44ac0b3edf60
+with_theme(ATLASTHEME) do
+	stairs(
+		normalize(h_pt1); label = L"|\eta|~<~2",
+		figure = (; resolution = (500, 400)),
+		axis = (title="Normalized", ylabel = "Number of single muons / 2 GeV")
+	)
+	stairs!(normalize(h_pt2); label = L"|\eta|~\geq~2")
+
+	axislegend()
+	current_figure()
+end
+
+# ╔═╡ 9b663bb1-67c9-4b29-ad2d-aca2331cd4dd
+md"""
+!!! tips "Columnar vs. row-based analysis"
+	We want to emphasize again the fact that Julia doesn't slow down when doing row-based analysis, and we find the flexibility and scalability appealing.
+
+	We cite some timing from uproot python tutorial for comparison:
+
+Python row-based:
+```python
+CPU times: user 4.78 s, sys: 77.2 ms, total: 4.86 s
+Wall time: 4.88 s
+```
+Python columnar:
+```python
+CPU times: user 5.18 ms, sys: 1 ms, total: 6.18 ms
+Wall time: 4.87 ms
+```
+
+With Julia, we can easily find situation where row-based is **faster** than columnar:
+"""
+
+# ╔═╡ 788bbeb8-c61b-41ea-b904-41f80d5d264a
+@benchmark mapreduce(+, $tree.Muon_eta) do etas
+	count(x -> -2 < x < 2, etas)
+end
+
+# ╔═╡ cbab9f62-672c-439e-bdad-ffb0aa1399f0
+md"# Getting Physics-Relevant Information"
+
+# ╔═╡ 404cf7b3-41cb-4bcd-b7a4-b35e9cd414a6
+begin 
+	hist_ΔR = Hist1D(; bins = 0:0.05:6)
+	for evt in tree
+		evt.nMuon != 2 && continue #two_muons_mask
+		(; Muon_pt, Muon_eta, Muon_phi, Muon_mass) = evt
+		two_muons_p4 = LorentzVectorCyl.(Muon_pt, Muon_eta, Muon_phi, Muon_mass)
+		# we know:
+		# two_muons_p4::Vector{LorentzVectorCyl} and its length == 2
+
+		push!(hist_ΔR, deltar(two_muons_p4...))
+	end
+	plot(hist_ΔR; 
+		figure = (; resolution = (500, 400)),
+		axis = (xlabel = "ΔR between muons", ylabel = "Number of two-muon events")
+	)
+end
+
+# ╔═╡ 90f38d7f-23cf-4c1e-986f-90b7c78d6de4
+md"## Opposite sign muons"
+
+# ╔═╡ 05123d1c-eb9f-46ee-b620-21d3ca9733d6
+with_theme(ATLASTHEME) do
+	log_bins = 10 .^ range(log10(0.1), log10(1000); length=200)
+	hist_inv = Hist1D(; bins = log_bins)
+	for evt in tree
+		evt.nMuon != 2 && continue #two_muons_mask
+		(; Muon_charge) = evt
+		Muon_charge[1] == Muon_charge[2] && continue # require oppo sign
+		(; Muon_pt, Muon_eta, Muon_phi, Muon_mass) = evt
+		two_muons_p4 = LorentzVectorCyl.(Muon_pt, Muon_eta, Muon_phi, Muon_mass)
+		# we know:
+		# two_muons_p4::Vector{LorentzVectorCyl} and its length == 2
+
+		push!(hist_inv, mass(sum(two_muons_p4)))
+	end
+	stairs(hist_inv; 
+		figure = (; resolution = (600, 400)),
+		axis = (xlabel = "ΔR between muons",
+		xscale = Makie.pseudolog10,
+		xticks = [0.1, 1, 10, 100, 1000],
+		yscale = Makie.pseudolog10,
+		yticks = [1, 10, 100, 1000],
+		ylabel = "Number of two-muon events")
+	)
+	# text annotation
+	ps = Dict("Z"=>91.2, "J/Ψ"=>3.09, "Υ"=>9.4, "Ψ(2S)"=>3.686, "ϕ"=>1.019, "ρ"=>0.775, "η"=>0.52)
+	for (k,v) in ps
+		text!(v, lookup(hist_inv, v); text = k, align = (:center, :baseline))
+	end
+
+	current_figure()
 end
 
 # ╔═╡ Cell order:
@@ -224,11 +407,25 @@ end
 # ╠═b076613c-3598-4b67-a228-e30497525acb
 # ╟─eb995f0c-d3ab-4e88-9ca4-3df3068ded8e
 # ╠═5ffa29c0-a219-43be-a9f0-70a09b95591c
-# ╠═7c19940c-5369-436c-a265-53bdd2e0d97c
 # ╟─9fb1fc42-90cf-4fca-8da5-8224895f0a74
 # ╠═f29b616a-4292-4cb3-8e3c-3fd3e0710cc9
 # ╠═511a83e7-c6d2-49c5-bd4b-ea110f8cd165
+# ╟─77a8f701-5ea5-4a65-b4e1-4e39c915560c
+# ╠═7c19940c-5369-436c-a265-53bdd2e0d97c
 # ╟─e93fe9ed-a658-43b8-a601-afa39ebe6948
 # ╠═14278424-e992-4118-80f7-486efdfdc608
 # ╟─92fc0757-19b0-4ec5-bad6-a0eab905203c
 # ╠═6fbc0e9e-62cd-41d4-8d92-c1d4efc849c1
+# ╠═1c238044-1a65-4f89-955d-ffc439eca23e
+# ╟─3aa7b6a5-1239-4591-85d6-4b5af5b62f02
+# ╠═d138ae76-9d55-4adb-a551-db649ab19c09
+# ╠═6ac418c3-3a0e-4973-b762-51b9c76db0b6
+# ╠═8d563e0f-b45f-4d61-b380-44ac0b3edf60
+# ╟─9b663bb1-67c9-4b29-ad2d-aca2331cd4dd
+# ╠═22c83079-6155-4991-8ec8-007d67d9142d
+# ╠═788bbeb8-c61b-41ea-b904-41f80d5d264a
+# ╟─cbab9f62-672c-439e-bdad-ffb0aa1399f0
+# ╠═66b10dce-552a-4129-8cc3-1ce4c543e8b5
+# ╠═404cf7b3-41cb-4bcd-b7a4-b35e9cd414a6
+# ╟─90f38d7f-23cf-4c1e-986f-90b7c78d6de4
+# ╠═05123d1c-eb9f-46ee-b620-21d3ca9733d6
